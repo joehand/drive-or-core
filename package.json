@@ -1,0 +1,26 @@
+{
+  "name": "drive-or-core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "standard && tape test.js | tap-spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joehand/drive-or-core.git"
+  },
+  "author": "Joe Hand <joe@hand.email> (https://joeahand.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joehand/drive-or-core/issues"
+  },
+  "homepage": "https://github.com/joehand/drive-or-core#readme",
+  "dependencies": {
+    "hyperdrive-encoding": "^2.0.1",
+    "memdb": "^1.3.1"
+  },
+  "devDependencies": {
+    "normcore": "^1.0.4"
+  }
+}
