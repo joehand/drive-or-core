@@ -1,54 +1,47 @@
-var hypercore = require('hypercore')
-var hyperdrive = require('hyperdrive')
-var memdb = require('memdb')
-var discovery = require('hyperdiscovery')
 var encoding = require('hyperdrive-encoding')
 
 module.exports = driveOrCore
 
-function driveOrCore (keyOrFeed, opts, cb) {
-  if (typeof opts === 'function') return driveOrCore(keyOrFeed, {}, opts)
-  if (keyOrFeed.content) return doneArchive(null, cb) // the easy one
+function driveOrCore (feed1, feed2, cb) {
+  if (typeof feed2 === 'function') return driveOrCore(feed1, null, feed2)
+  if (feed1.content) return cb(null, 'archive', feed1.key) // easy one!
 
-  var key = keyOrFeed.key ? keyOrFeed.key : keyOrFeed
-  var feed = keyOrFeed.key ? keyOrFeed : null
-  var needsCreate = !feed
-
-  if (!needsCreate) return checkFeed(cb)
-
-  var swarm
-  var db
-  var core
-  createFeed(function (err) {
+  checkFeed(feed1, function (err, type) {
     if (err) return cb(err)
-    checkFeed(cb)
+    if (!feed2 || type === 'archive') return cb(null, type, feed1.key)
+    checkFeed(feed2, function (err, type) {
+      if (err) return cb(err)
+      cb(null, type, feed2.key)
+    })
   })
 
-  function checkFeed (cb) {
+  function checkFeed (feed, cb) {
     feed.open(function (err) {
       if (err) return cb(err)
       feed.get(0, function (err, data) {
         if (err) return cb(err)
         var maybeContentKey = hasContentFeed(data)
-        if (maybeContentKey) return doneArchive(null, cb, maybeContentKey)
-        if (!feed.blocks) return doneFeed(null, cb) // TODO: not sure what this case is but think it'd only happen in hypercore feeds
+        if (maybeContentKey) return doneArchive()
+        if (!feed.blocks) return doneFeed() // TODO: not sure what this case is but think it'd only happen in hypercore feeds
 
         feed.get(feed.blocks - 1, function (err, data) {
           if (err) return cb(err)
           var maybeContentKey = hasContentFeed(data)
-          if (maybeContentKey) return doneArchive(null, cb, maybeContentKey)
-          return doneFeed(null, cb)
+          if (maybeContentKey) return doneArchive()
+          return doneFeed()
         })
       })
     })
-  }
 
-  function createFeed (cb) {
-    db = opts.db || memdb()
-    core = hypercore(db)
-    feed = core.createFeed(key, {sparse: true})
-    swarm = discovery(feed)
-    cb(null)
+    function doneFeed (err) {
+      if (err) return cb(err)
+      cb(null, 'feed')
+    }
+
+    function doneArchive (err) {
+      if (err) return cb(err)
+      cb(null, 'archive')
+    }
   }
 
   function hasContentFeed (data) {
@@ -60,27 +53,5 @@ function driveOrCore (keyOrFeed, opts, cb) {
     } catch (e) {
       return false
     }
-  }
-
-  function createArchive (key) {
-    var drive = hyperdrive(db)
-    var archive = drive.createArchive(key, {
-      sparse: true,
-      metadata: feed,
-      content: core.createFeed(key, {sparse: true})
-    })
-    return archive
-  }
-
-  function doneFeed (err, cb) {
-    if (err) return cb(err)
-    cb(null, feed, 'feed', swarm)
-  }
-
-  function doneArchive (err, cb, contentKey) {
-    if (err) return cb(err)
-    if (!needsCreate) return cb(null, feed, 'archive')
-    var archive = createArchive(contentKey)
-    cb(null, archive, 'archive', swarm)
   }
 }
