@@ -1,6 +1,6 @@
 {
   "name": "drive-or-core",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Is a key or object a hyperdrive archive or hypercore feed?",
   "main": "index.js",
   "scripts": {
